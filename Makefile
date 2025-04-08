@@ -13,6 +13,7 @@ CC = cc
 FLAGS = -Wall -Werror -Wextra
 LIBFT_DIR = ./libft
 LIBFT = ./libft/libft.a
+LIBFT_DPDS = $(wildcard $(LIBFT_DIR)/*.c $(LIBFT_DIR)/*.h)
 
 SRCS = parse.c \
 		pipex.c
@@ -20,17 +21,17 @@ OBJS = $(SRCS:.c=.o)
 
 all: $(NAME)
 
-$(LIBFT):
-		@make -C $(LIBFT_DIR)
+$(LIBFT): $(LIBFT_DPDS)
+		make -C $(LIBFT_DIR)
 
 %.o: %.c
 		@echo -n "$(BGREEN)"
 		$(CC) $(FLAGS) -I. -c $< -o $@
 		@echo -n "$(RESET_COLOR)"
 
-$(NAME): $(LIBFT) $(OBJS)
+$(NAME): $(LIBFT) $(OBJS) $(LIBFT_DPDS)
 		@echo -n "$(BPURPLE)"
-		$(CC) $(FLAGS) $(OBJS) $(LIBFT) -o $(NAME)
+		$(CC) $(FLAGS) $(OBJS) -L$(LIBFT_DIR) -lft -o $(NAME)
 		@echo -n "$(RESET_COLOR)"
 
 clean:
