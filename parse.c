@@ -63,11 +63,11 @@ static char	**find_path(t_path *data, char **envp)
 		i++;
 	}
 	if (!ptr)
-		error_exit(data, "Error: PATH is forbidden", 0);
+		error_exit(data, "Command not found: PATH is incorrectly set", 127);
 	ptr += 5;
 	prefix = ft_split(ptr, ':');
 	if (!prefix)
-		error_exit(data, "Error allocating array", 1);
+		error_exit(data, "Error allocating memory", 0);
 	return (prefix);
 }
 
@@ -81,19 +81,23 @@ static char	*find_cmdfile(t_path *data, char *cmd, char **envp)
 	data->prefix = find_path(data, envp);
 	data->slash_cmd = ft_strjoin("/", cmd);
 	if (!data->slash_cmd)
-		error_exit(data, "Error allocating array", 1);
+		error_exit(data, "Error allocating memory", 0);
 	while (data->prefix[i])
 	{
 		data->path = ft_strjoin(data->prefix[i], data->slash_cmd);
 		if (!data->path)
-			error_exit(data, "Error allocating array", 1);
-		if (access(data->path, F_OK | X_OK) == 0)
+			error_exit(data, "Error allocating memory", 0);
+		if (access(data->path, F_OK) == 0)
+		{
+			if (access(data->path, X_OK) == -1)
+				error_exit(data, cmd, 126);
 			return (data->path);
+		}
 		free(data->path);
 		data->path = NULL;
 		i++;
 	}
-	error_exit(data, "Error: Executable file not found", 0);
+	error_exit(data, cmd, 127);
 	return (NULL);
 }
 
@@ -105,16 +109,18 @@ void	execute_command(char *argv, char **envp)
 	initialize_path(&data);
 	data.cmd = ft_split(argv, ' ');
 	if (!data.cmd)
-		error_exit(&data, "Error allocating array", 1);
+		error_exit(&data, "Error allocating memory", 0);
 	else if (!data.cmd[0])
-		error_exit(&data, "Empty command input", 0);
+		error_exit(&data, "Error: Empty command input", 0);
 	if (ft_isalpha(data.cmd[0][0]))
 		filepath = find_cmdfile(&data, data.cmd[0], envp);
 	else
 	{
 		filepath = data.cmd[0];
+		if (access(filepath, F_OK) == 0 && access(filepath, X_OK) == -1)
+			error_exit(&data, filepath, 126);
 		if (access(filepath, F_OK | X_OK) != 0)
-			error_exit(&data, "Error: Executable file not found", 1);
+			error_exit(&data, filepath, 127);
 	}
 	if (execve(filepath, data.cmd, envp) == -1)
 		error_exit(&data, "Error executing command", 1);

@@ -15,12 +15,24 @@
 /*Free all allocated memory before exit*/
 void	error_exit(t_path *data, char *s, int sys_error_flag)
 {
-	free_data(data);
 	if (sys_error_flag == 0)
-		ft_putendl_fd(s, 2);
+	{
+		ft_putendl_fd(s, STDERR_FILENO);
+		free_data(data);
+		exit(EXIT_FAILURE);
+	}
+	if (sys_error_flag == 127 && ft_strnstr(s, "PATH", 25))
+	{
+		ft_putendl_fd(s, STDERR_FILENO);
+		free_data(data);
+		exit(sys_error_flag);
+	}
 	else
+	{
 		perror(s);
-	exit(EXIT_FAILURE);
+		free_data(data);
+		exit(sys_error_flag);
+	}
 }
 
 static void	child_one(int *pipefd, char **argv, char **envp)
@@ -29,7 +41,7 @@ static void	child_one(int *pipefd, char **argv, char **envp)
 
 	fd = open(argv[1], O_RDONLY);
 	if (fd == -1)
-		error_exit(NULL, "Couldn't open the infile", 1);
+		error_exit(NULL, argv[1], 1);
 	close(pipefd[0]);
 	dup2(fd, STDIN_FILENO);
 	dup2(pipefd[1], STDOUT_FILENO);
@@ -44,7 +56,7 @@ static void	child_two(int *pipefd, char **argv, char **envp)
 
 	fd = open(argv[4], O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd == -1)
-		error_exit(NULL, "Couldn't write in the outfile", 1);
+		error_exit(NULL, argv[4], 1);
 	close(pipefd[1]);
 	dup2(pipefd[0], STDIN_FILENO);
 	dup2(fd, STDOUT_FILENO);
@@ -78,14 +90,14 @@ int	main(int argc, char **argv, char **envp)
 
 	i = 0;
 	if (argc != 5)
-		error_exit(NULL, "Error in input: Number of arguments incorrect", 0);
+		error_exit(NULL, "Invalid input: Number of arguments incorrect", 0);
 	if (pipe(pipefd) == -1)
-		error_exit(NULL, "Error creating pipe", 1);
+		error_exit(NULL, "Pipe failed", 1);
 	while (i++ < 2)
 	{
 		pid = fork();
 		if (pid == -1)
-			error_exit(NULL, "Error creating child process", 1);
+			break ;
 		if (i == 1 && pid == 0)
 			child_one(pipefd, argv, envp);
 		if (i == 2 && pid == 0)
@@ -93,5 +105,7 @@ int	main(int argc, char **argv, char **envp)
 	}
 	close(pipefd[0]);
 	close(pipefd[1]);
+	if (pid == -1)
+		error_exit(NULL, "Fork failed", 0);
 	return (parent(pid));
 }
