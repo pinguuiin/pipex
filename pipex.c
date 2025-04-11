@@ -39,10 +39,13 @@ static void	child_one(int *pipefd, char **argv, char **envp)
 {
 	int	fd;
 
+	close(pipefd[0]);
 	fd = open(argv[1], O_RDONLY);
 	if (fd == -1)
+	{
+		close(pipefd[1]);
 		error_exit(NULL, argv[1], 1);
-	close(pipefd[0]);
+	}
 	dup2(fd, STDIN_FILENO);
 	dup2(pipefd[1], STDOUT_FILENO);
 	close(fd);
@@ -54,10 +57,13 @@ static void	child_two(int *pipefd, char **argv, char **envp)
 {
 	int	fd;
 
+	close(pipefd[1]);
 	fd = open(argv[4], O_WRONLY | O_CREAT | O_TRUNC, 0777);
 	if (fd == -1)
+	{
+		close(pipefd[0]);
 		error_exit(NULL, argv[4], 1);
-	close(pipefd[1]);
+	}
 	dup2(pipefd[0], STDIN_FILENO);
 	dup2(fd, STDOUT_FILENO);
 	close(fd);
